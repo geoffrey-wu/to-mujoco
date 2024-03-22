@@ -1,0 +1,52 @@
+defaults:
+  - IHM.yaml
+
+name: HANDEM_Reconstruct
+
+env:
+  object_dataset: 'Tandem2D'
+  upsample: True # use upsampled object dataset
+
+  objectOverride:
+  episodeLength: 200
+  use_saved_grasps: False
+  rand_object_reset: True
+
+  fix_object: False
+  edge_loss_lambda: 1e-3
+  n_vertices: 100
+  autoreg_alpha: 1 # weight for autoregressive updates
+
+  # observation and state
+  feedbackObs: ["hand_joint_pos",  "hand_joint_target", "ftip_contact_bool", "ftip_contact_pos"]
+  feedbackState: ["hand_joint_pos",  "hand_joint_target", "ftip_contact_force", "object_pos", "object_orientation", "object_lin_vel", "object_ang_vel", "hand_joint_torque"]
+
+  propHistoryRange: 40 # how far to look back
+  propHistoryFreq: 4 # how often to include prev obs in hist buf
+  obsHistoryRange: 80
+  obsHistoryFreq: 8
+
+  reset:
+    loss_threshold: 1e-4
+    obj_xyz_lower_lim: [0.0, 0.35, 0.0]
+    obj_xyz_upper_lim: [0.3, 0.65, 0.5]
+    tilt_lim_cos: 0.0
+
+  # reward terms
+  reward:
+    reg_loss_reward: 10.0
+    reg_loss_temp: 10.0
+    # heuristic terms
+    ftip_obj_dist_rew: 0.0 # encourage contact
+    object_disp_rew: 0.01 # encourage object to stay in place
+    contact_loc_pen: 0.01 # penalize contact with back of fingertips
+    hand_pose_pen: 0.5 # penalize hand joint disp from "close-hand"
+    finger_gaiting_reward: 1.0
+    torque_pen: 0.0
+    work_pen: 0.0
+
+  randomize: False
+  randomization_params:
+    observation:
+      sigma: 0.01
+      tactile: 0.5 # uniform noise in range [0.0, tactile]
