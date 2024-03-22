@@ -165,7 +165,15 @@ class IHMBase(VecTask):
 
     def create_sim(self):
         self.up_axis_idx = 2 if self.up_axis == "z" else 1  # index of up axis: Y=1, Z=2
-        super().create_sim()
+
+        self.dt = self.sim_params.dt
+        self.up_axis_idx = self.set_sim_params_up_axis(self.sim_params, self.up_axis)
+        self.sim = self.gym.create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
+        if self.sim is None:
+            print("*** Failed to create sim")
+            quit()
+        self._create_envs(self.num_envs, self.cfg["env"]["envSpacing"], int(np.sqrt(self.num_envs)))
+
         self._create_ground_plane()
 
     def _create_envs(self, num_envs, spacing, num_per_row):
@@ -692,7 +700,17 @@ class IHMBase(VecTask):
                                         [0, 0, 0])
 
     def reset(self):
-        super().reset()
+        """Reset the environment.
+        Returns:
+            Observation dictionary
+        """
+        env_ids = self.reset_buf.nonzero().squeeze(-1)
+        self.reset_idx(env_ids)
+        zero_actions = self.zero_actions()
+        # step the simulator
+        self.step(zero_actions)
+        self.obs_dict["obs"] = torch.clamp(self.obs_buf, -self.clip_obs, self.clip_obs).to(self.rl_device)
+
         self.obs_dict["proprio_hist"] = self.proprio_hist_buf.to(self.rl_device)
         if "Reconstruct" in self.cfg["name"]:
             self.obs_dict["vertex_labels"] = self.transformed_vertex_labels.clone().to(self.rl_device)
@@ -701,7 +719,40 @@ class IHMBase(VecTask):
         return self.obs_dict
 
     def step(self, actions):
-        super().step(actions)
+        """Step the physics of the environment.
+
+        Args:
+            actions: actions to apply
+        Returns:
+            Observations, rewards, resets, info
+            Observations are dict of observations (currently only one member called 'obs')
+        """
+        action_tensor = torch.clamp(actions, -self.clip_actions, self.clip_actions)
+        # apply actions
+        self.pre_physics_step(action_tensor)
+
+        # step physics and render each frame
+        for i in range(self.control_freq_inv):
+            self.render()
+            self.update_low_level_control()
+            self.gym.simulate(self.sim)
+
+        # to fix!
+        if self.device == "cpu":
+            self.gym.fetch_results(self.sim, True)
+
+        # fill time out buffer
+        self.timeout_buf = torch.where(
+            torch.greater_equal(self.progress_buf, self.max_episode_length - 1),
+            torch.ones_like(self.timeout_buf),
+            torch.zeros_like(self.timeout_buf),
+        )
+
+        # compute observations, rewards, resets, ...
+        self.post_physics_step()
+        self.extras["time_outs"] = self.timeout_buf.to(self.rl_device)
+        self.obs_dict["obs"] = torch.clamp(self.obs_buf, -self.clip_obs, self.clip_obs).to(self.rl_device)
+
         self.obs_dict["proprio_hist"] = self.proprio_hist_buf.to(self.rl_device)
         if "Reconstruct" in self.cfg["name"]:
             self.obs_dict["vertex_labels"] = self.transformed_vertex_labels.clone().to(self.rl_device)
