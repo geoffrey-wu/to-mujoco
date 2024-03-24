@@ -25,7 +25,7 @@ import mujoco
 from mujoco import mjx
 
 
-class Humanoid(PipelineEnv):
+class IHMBase(PipelineEnv):
   def __init__(
       self,
       forward_reward_weight=1.25,
@@ -150,4 +150,4 @@ class Humanoid(PipelineEnv):
         data.qfrc_actuator,
     ])
 
-envs.register_environment('humanoid', Humanoid)
+envs.register_environment('ihmbase', IHMBase)
