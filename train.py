@@ -1,3 +1,5 @@
+import argparse
+
 from envs.humanoid import Humanoid
 from envs.ihm_base import IHMBase
 
@@ -87,7 +89,17 @@ def train(env_name='humanoid', model_path = 'models/mjx_brax_policy.mjx', writer
     model.save_params(model_path, params)
 
 
-if __name__ == '__main__':
-    env_name = 'ihm_base'
-    experiment_name = 'test1'
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--env_name', type=str, default='humanoid')
+    parser.add_argument('--experiment_name', type=str, default='experiment')
+
+    args = parser.parse_args()
+    env_name = args.env_name
+    experiment_name = args.experiment_name
+
     train(env_name, f'models/{experiment_name}.mjx', f'tensorboard/{experiment_name}')
+
+
+if __name__ == '__main__':
+    main()
