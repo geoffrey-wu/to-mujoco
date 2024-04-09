@@ -1,1 +1,7 @@
+.DS_Store
+
 __pycache__
+
+html_renders
+models
+tensorboard
