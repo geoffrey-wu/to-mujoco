@@ -150,4 +150,4 @@ class IHMBase(PipelineEnv):
     ])
 
 
-envs.register_environment('ihmbase', IHMBase)
+envs.register_environment('ihm_base', IHMBase)
