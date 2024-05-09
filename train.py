@@ -52,7 +52,7 @@ def train(env_name='humanoid', model_path = 'models/mjx_brax_policy.mjx', writer
         episode_length=1000, normalize_observations=True, action_repeat=1,
         unroll_length=10, num_minibatches=32, num_updates_per_batch=8,
         discounting=0.97, learning_rate=3e-4, entropy_cost=1e-3, num_envs=16384,
-        batch_size=1024, seed=0)
+        batch_size=8192, seed=0)
 
     x_data = []
     y_data = []
